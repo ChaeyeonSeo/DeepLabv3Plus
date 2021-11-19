@@ -160,19 +160,3 @@ class ASPP(nn.Module):
             res.append(conv(x))
         res = torch.cat(res, dim=1)
         return self.project(res)
-
-
-
-def convert_to_separable_conv(module):
-    new_module = module
-    if isinstance(module, nn.Conv2d) and module.kernel_size[0]>1:
-        new_module = AtrousSeparableConvolution(module.in_channels,
-                                      module.out_channels, 
-                                      module.kernel_size,
-                                      module.stride,
-                                      module.padding,
-                                      module.dilation,
-                                      module.bias)
-    for name, child in module.named_children():
-        new_module.add_module(name, convert_to_separable_conv(child))
-    return new_module
