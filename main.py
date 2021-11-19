@@ -5,6 +5,7 @@ import os
 import random
 import argparse
 import numpy as np
+import copy
 
 from torch.utils import data
 from datasets import DenseCOCO
@@ -105,33 +106,6 @@ def validate(opts, model, loader, device, metrics):
     return score
 
 
-def prune_model(model):
-    num_layers = 4
-    for i in range(1, num_layers+1):
-        layer = model.backbone[f'layer{i}']
-        num_blocks = len(layer)
-        for j in range(num_blocks):
-            block = layer[j]
-            conv1 = block.conv1
-            prune.l1_unstructured(conv1, name="weight", amount=0.5)
-            prune.remove(conv1, 'weight')
-            block.conv1 = conv1
-            
-            conv2 = block.conv2
-            prune.l1_unstructured(conv2, name="weight", amount=0.5)
-            prune.remove(conv2, 'weight')
-            block.conv2 = conv2
-
-            conv3 = block.conv3
-            prune.l1_unstructured(conv3, name="weight", amount=0.5)
-            prune.remove(conv3, 'weight')
-            block.conv3 = conv3
-
-            layer[j] = block
-        model.backbone[f'layer{i}'] = layer
-    return model
-
-
 def main():
     opts = get_argparser().parse_args()
     opts.num_classes = 15
@@ -192,10 +166,11 @@ def main():
     cur_itrs = 0
     cur_epochs = 0
     print("[!] Retrain")
-    model.to(device)
 
     #==========   Train Loop   ==========#
     denorm = utils.Denormalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # denormalization for ori images
+    
+    model.to(device)
 
     interval_loss = 0
     while True: #cur_itrs < opts.total_itrs:
@@ -209,7 +184,6 @@ def main():
             labels = labels.to(device, dtype=torch.long)
 
             optimizer.zero_grad()
-            model = prune_model(model)
             outputs = model(images)
             loss = criterion(outputs, labels)
             loss.backward()
@@ -230,19 +204,19 @@ def main():
                 print("validation...")
                 model.eval()
                 val_score = validate(
-                    opts=opts, model=model, loader=val_loader, device=device, metrics=metrics)
+                    opts=opts, model=model, loader=val_loader, device=cpu_device, metrics=metrics)
                 print(metrics.to_str(val_score))
                 if val_score['Mean IoU'] > best_score:  # save best model
                     best_score = val_score['Mean IoU']
                     save_ckpt('checkpoints/best_%s_%s_os%d.pt' %
                               (opts.model, opts.dataset,opts.output_stride))
-                              
+                
                 model.train()
             scheduler.step()  
 
             if cur_itrs >=  opts.total_itrs:
                 return
-
         
+
 if __name__ == '__main__':
     main()
