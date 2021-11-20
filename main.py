@@ -157,7 +157,13 @@ def main():
     def save_ckpt(path):
         """ save current model
         """
-        torch.save(model.state_dict(), path)
+        torch.save({
+            "cur_itrs": cur_itrs,
+            "model_state": model.state_dict(),
+            "optimizer_state": optimizer.state_dict(),
+            "scheduler_state": scheduler.state_dict(),
+            "best_score": best_score,
+        }, path)
         print("Model saved as %s" % path)
     
     utils.mkdir('checkpoints')

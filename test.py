@@ -553,27 +553,6 @@ def convert_to_separable_conv(module):
         new_module.add_module(name, convert_to_separable_conv(child))
     return new_module
 
-
-def denormalize(tensor, mean, std):
-    mean = np.array(mean)
-    std = np.array(std)
-
-    _mean = -mean/std
-    _std = 1/std
-    return normalize(tensor, _mean, _std)
-
-class Denormalize(object):
-    def __init__(self, mean, std):
-        mean = np.array(mean)
-        std = np.array(std)
-        self._mean = -mean/std
-        self._std = 1/std
-
-    def __call__(self, tensor):
-        if isinstance(tensor, np.ndarray):
-            return (tensor - self._mean.reshape(-1,1,1)) / self._std.reshape(-1,1,1)
-        return normalize(tensor, self._mean, self._std)
-
 def set_bn_momentum(model, momentum=0.1):
     for m in model.modules():
         if isinstance(m, nn.BatchNorm2d):
@@ -596,8 +575,6 @@ if __name__ == "__main__":
     save_path = opts.save_path
 
     transform = transforms.ToTensor()
-    
-    denorm = Denormalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
     test_dst = CustomDataset(root='', image_folder=data_path, transform=transform)
     test_loader = data.DataLoader(test_dst, batch_size=1, shuffle=False, num_workers=2)
