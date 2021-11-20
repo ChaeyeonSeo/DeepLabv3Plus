@@ -49,7 +49,7 @@ def _segm_mobilenet(name, backbone_name, num_classes, output_stride, pretrained_
     
     if name=='deeplabv3plus':
         return_layers = {'high_level_features': 'out', 'low_level_features': 'low_level'}
-        classifier = DeepLabHeadV3Plus(inplanes, low_level_planes, num_classes, aspp_dilate)
+        classifier = DeepLabHeadV3Plus(inplanes, low_level_planes, num_classes)
     elif name=='deeplabv3':
         return_layers = {'high_level_features': 'out'}
         classifier = DeepLabHead(inplanes , num_classes, aspp_dilate)

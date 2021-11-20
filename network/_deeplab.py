@@ -26,9 +26,9 @@ class DeepLabV3(_SimpleSegmentationModel):
     pass
 
 class DeepLabHeadV3Plus(nn.Module):
-    def __init__(self, in_channels, low_level_channels, num_classes, aspp_dilate=[12, 24, 36]):
+    def __init__(self, in_channels, low_level_channels, num_classes, aspp_dilate=[6, 12, 18, 24, 30, 36]):
         super(DeepLabHeadV3Plus, self).__init__()
-        self.project = nn.Sequential( 
+        self.project = nn.Sequential(
             nn.Conv2d(low_level_channels, 48, 1, bias=False),
             nn.BatchNorm2d(48),
             nn.ReLU(inplace=True),
@@ -82,7 +82,7 @@ class DeepLabHead(nn.Module):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
 
-class AtrousSeparableConvolution(nn.Module):
+class AtrousSeparableConvolution(nn.Module): # ASPP
     """ Atrous Separable Convolution
     """
     def __init__(self, in_channels, out_channels, kernel_size,
@@ -140,16 +140,19 @@ class ASPP(nn.Module):
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True)))
 
-        rate1, rate2, rate3 = tuple(atrous_rates)
+        rate1, rate2, rate3, rate4, rate5, rate6 = tuple(atrous_rates)
         modules.append(ASPPConv(in_channels, out_channels, rate1))
         modules.append(ASPPConv(in_channels, out_channels, rate2))
         modules.append(ASPPConv(in_channels, out_channels, rate3))
+        modules.append(ASPPConv(in_channels, out_channels, rate4))
+        modules.append(ASPPConv(in_channels, out_channels, rate5))
+        modules.append(ASPPConv(in_channels, out_channels, rate6))
         modules.append(ASPPPooling(in_channels, out_channels))
 
         self.convs = nn.ModuleList(modules)
 
         self.project = nn.Sequential(
-            nn.Conv2d(5 * out_channels, out_channels, 1, bias=False),
+            nn.Conv2d(8 * out_channels, out_channels, 1, bias=False),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
             nn.Dropout(0.1),)
